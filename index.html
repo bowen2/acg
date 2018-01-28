@@ -10,8 +10,11 @@
         </style>
         <script src="/socket.io/socket.io.js"></script>
     </head>
-    <body>
-        <h1>Arbitrary card game</h1>
+    <body oncontextmenu="return false;">
+        <p id="intro"></p>
+        <p><button id="add-deck">Add deck</button><button id="shuffle">Shuffle</button>
+        <button id="hide-all">Hide all</button><button id="clear-all">Clear all</button>
+        <button id="collect">Collect at top left</button></p>
         <canvas id="canvas">Your browser does not support HTML5 canvas. Please update your browser.</canvas>
     </body>
     <script src="/static/game.js"></script>

@@ -1,19 +1,44 @@
-var socket = io();
+var socket = io({transports: ['websocket'], upgrade: false});
+var canvas = document.getElementById('canvas');
+var mouse;
+var playerNum;
 
-function CardGraphic(x, y, code, serverOrder) {
+canvas.width = 800;
+canvas.height = 600;
+
+canvasState = new CanvasState(canvas);  
+
+socket.on('playerinfo', function(info) {
+    playerNum = info.num;
+    document.getElementById("intro").innerHTML = "You are player " + info.num + ". The players are " + info.players + ".";
+});
+
+socket.on('cards', function(cards) {
+    canvasState.reset();
+    for (var i in cards) {
+        var card = cards[i];
+        canvasState.addGraphic(new CardGraphic(card.x, card.y, card.code, card.cardID, card.visible));
+    }
+    canvasState.draw();
+});
+
+function CardGraphic(x, y, code, cardID, visible) {
     this.x = x;
     this.y = y;
+    this.cardID = cardID;
+    this.visible = visible;
+    if (visible != 'all' && !(this.visible.includes(playerNum))) {
+        code = 54;
+    }
     this.graphicSrc = "static/images/" + code + ".png";
     this.img = new Image();
-    this.serverOrder = serverOrder
+    
 }
 
 CardGraphic.prototype.draw = function(context) {
     var x = this.x;
     var y = this.y;
-    this.img.onload = function() {
-        context.drawImage(this.img, x, y, 100, 140);
-    }
+    var img = this.img;
     this.img.src = this.graphicSrc;
     context.drawImage(this.img, x, y, 100, 140);
 }
@@ -56,20 +81,23 @@ function CanvasState(canvas) {
     }, false);
 
     canvas.addEventListener('mousedown', function(e) {
-        var mouse = baseState.getMouse(e);
+        mouse = baseState.getMouse(e);
         var mx = mouse.x;
         var my = mouse.y;
         var graphics = baseState.graphics;
         var l = graphics.length;
         for (var i = l - 1; i >= 0; --i) {
-            if (graphics[i].contains(mx, my)) {
-                var sel = graphics[i];
+            if (graphics[i].contains(mx, my) && e.button != 2) {
+                var sel = graphics.splice(i, 1)[0];
+                graphics.push(sel);
                 baseState.dragoffx = mx - sel.x;
                 baseState.dragoffy = my - sel.y;
                 baseState.dragging = true;
                 baseState.selection = sel;
-                baseState.selectionIdx = i;
                 baseState.valid = false;
+                return;
+            } else if (graphics[i].contains(mx, my) && e.button == 2) {
+                socket.emit('update', {cardID: graphics[i].cardID, visible: (graphics[i].visible == 'all') ? [] : 'all'});
                 return;
             }
         }
@@ -80,8 +108,8 @@ function CanvasState(canvas) {
     }, true);
 
     canvas.addEventListener('mousemove', function(e) {
+        mouse = baseState.getMouse(e);
         if (baseState.dragging) {
-            var mouse = baseState.getMouse(e);
             baseState.selection.x = mouse.x - baseState.dragoffx;
             baseState.selection.y = mouse.y - baseState.dragoffy;
             baseState.valid = false;
@@ -90,10 +118,31 @@ function CanvasState(canvas) {
 
     canvas.addEventListener('mouseup', function(e) {
         if (baseState.dragging) {
-            socket.emit('drag', {idx: baseState.selection.serverOrder, x: baseState.selection.x, y: baseState.selection.y})
+            socket.emit('update', {cardID: baseState.selection.cardID, x: baseState.selection.x, y: baseState.selection.y})
         }
         baseState.dragging = false;
     }, true);
+
+    document.addEventListener('keypress', function(e) {
+        var mx = mouse.x;
+        var my = mouse.y;
+        var graphics = baseState.graphics;
+        var l = graphics.length;
+        for (var i = l - 1; i >= 0; --i) {
+            if (graphics[i].contains(mx, my)) {
+                if (graphics[i].visible.length == 0 && e.key == playerNum) {
+                    socket.emit('update', {cardID: graphics[i].cardID, visible: [playerNum]});
+                } else if (graphics[i].visible != 'all' && graphics[i].visible[0] == playerNum) {
+                    if (graphics[i].visible.includes(e.key)) {
+                        socket.emit('update', {cardID: graphics[i].cardID, visible: graphics[i].visible.filter(x => x != e.key)});
+                    } else {
+                        graphics[i].visible.push(parseInt(e.key));
+                        socket.emit('update', {cardID: graphics[i].cardID, visible: graphics[i].visible});
+                    }
+                }
+            }
+        }
+    });
 
     this.selectionColor = '#CC00000';
     this.selectionWidth = 4;
@@ -164,20 +213,29 @@ CanvasState.prototype.getMouse = function(e) {
     return {x: mx, y: my};
 }
 
+var button = document.getElementById("add-deck");
+button.addEventListener('click', function() {
+    socket.emit('deck');
+}, false);
 
-var canvas = document.getElementById('canvas');
+var rbutton = document.getElementById("shuffle");
+rbutton.addEventListener('click', function() {
+    socket.emit('shuffle');
+}, false);
 
-canvas.width = 800;
-canvas.height = 600;
+var rrbutton = document.getElementById("hide-all");
+rrbutton.addEventListener('click', function() {
+    socket.emit('hide-all');
+}, false);
 
-canvasState = new CanvasState(canvas);
+var rrrbutton = document.getElementById("clear-all");
+rrrbutton.addEventListener('click', function() {
+    socket.emit('clear-all');
+}, false);
 
-socket.on('cards', function(cards) {
-    canvasState.reset();
-    for (var i in cards) {
-        var card = cards[i];
-        canvasState.addGraphic(new CardGraphic(card.x, card.y, card.code, card.serverOrder));
-    }
-});
+var rrrrbutton = document.getElementById("collect");
+rrrrbutton.addEventListener('click', function() {
+    socket.emit('collect');
+}, false);
 
 // [1] https://simonsarris.com/making-html5-canvas-useful/
