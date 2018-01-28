@@ -1,2 +1,2 @@
 # acg
-utility for playing arbitary card games
+utility for playing arbitrary card games
