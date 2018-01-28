@@ -10,6 +10,7 @@
             h1 {
                 text-align: center;
                 padding:5px;
+                color:Green;
             }
         </style>
         <script src="/socket.io/socket.io.js"></script>
@@ -21,6 +22,17 @@
         <button id="hide-all">Hide all</button><button id="clear-all">Clear all</button>
         <button id="collect">Collect at top left</button></p>
         <canvas id="canvas">Your browser does not support HTML5 canvas. Please update your browser.</canvas>
+        <article>
+          <h3>This is intended to be a card game simulator where you are free to play whatever game you like, hence it depends highly on trust. Any card game can be played. Cards can be moved via click-and-dragging.</h3>
+          <h2>How to play:</h2>
+          <p>1. Add deck adds a full set of 54 poker cards, including 2 jokers</p>
+          <p>2. Shuffle shuffles the deck</p>
+          <p>3. Hide all turns all the cards such that the card back faces up</p>
+          <p>4. Clear all clears all current cards on the board</p>
+          <p>5. Collect at top left shifts all cards to the top left corner of the board</p>
+          <p>6. Right click a card to turn it over. If you want it to be only visible to you, hover your mouse over the card and press the number corresponding to your player number on the keyboard. This works if you want to reveal the card to a specific player too.</p>
+          <p>e.g. If you are player 1, hover your mouse over the desired card and press '1'. The card will only be revealed to you. </p>
+        </article>
     </body>
     <script src="/static/game.js"></script>
 </html>
